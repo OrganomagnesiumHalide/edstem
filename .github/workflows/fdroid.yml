@@ -66,6 +66,9 @@ jobs:
           # Initialize F-Droid repo (generates temporary keystore and config.yml)
           fdroid init
           
+          # Set the canonical URL for the repository (used for QR codes and index metadata)
+          echo 'repo_url: "https://organomagnesiumhalide.github.io/edstem/repo/"' >> config.yml
+          
           # Move downloaded APK to the repo folder
           mkdir -p repo
           mv ../fdroid-temp/app-debug.apk repo/
