@@ -26,14 +26,19 @@ class MainActivity : AppCompatActivity() {
             webView.reload()
         }
 
-        // Prevent SwipeRefreshLayout from hijacking the scroll if the user is scrolling up the page
-        swipeRefreshLayout.setOnChildScrollUpCallback { _, _ ->
-            webView.scrollY > 0
-        }
-
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)
         cookieManager.setAcceptThirdPartyCookies(webView, true)
+
+        // Add JavascriptInterface to detect SPA scrolling
+        webView.addJavascriptInterface(object {
+            @android.webkit.JavascriptInterface
+            fun setAtTop(isAtTop: Boolean) {
+                runOnUiThread {
+                    swipeRefreshLayout.isEnabled = isAtTop
+                }
+            }
+        }, "AndroidScroll")
 
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -43,6 +48,21 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 swipeRefreshLayout.isRefreshing = false
+                
+                // Inject JS to monitor scroll on all elements
+                view?.evaluateJavascript("""
+                    function checkScroll(e) {
+                        var top = 0;
+                        if (e && e.target && e.target !== document) {
+                            top = e.target.scrollTop;
+                        } else {
+                            top = window.scrollY || document.documentElement.scrollTop;
+                        }
+                        AndroidScroll.setAtTop(top === 0);
+                    }
+                    document.addEventListener('scroll', checkScroll, true);
+                    checkScroll();
+                """.trimIndent(), null)
             }
 
             override fun shouldOverrideUrlLoading(
