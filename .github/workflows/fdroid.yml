@@ -29,14 +29,23 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew || true
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Decode App Keystore
+        run: |
+          echo "${{ secrets.APP_KEYSTORE_BASE64 }}" | base64 --decode > app/app-release.jks
+
+      - name: Build Release APK
+        env:
+          KEYSTORE_FILE: "app-release.jks"
+          KEYSTORE_PASSWORD: ${{ secrets.APP_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.APP_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.APP_KEYSTORE_PASSWORD }}
+        run: ./gradlew assembleRelease
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
 
   fdroid:
     needs: build
@@ -45,7 +54,7 @@ jobs:
       - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
-          name: app-debug
+          name: app-release
           path: fdroid-temp/
 
       - name: Set up Python
@@ -63,23 +72,36 @@ jobs:
           mkdir -p fdroid
           cd fdroid
           
-          # Initialize F-Droid repo (generates temporary keystore and config.yml)
+          # Initialize F-Droid repo
           fdroid init
           
-          # Set the canonical URL for the repository (used for QR codes and index metadata)
-          echo 'repo_url: "https://organomagnesiumhalide.github.io/edstem/repo"' >> config.yml
+          # Decode F-Droid Keystore
+          echo "${{ secrets.FDROID_KEYSTORE_BASE64 }}" | base64 --decode > fdroid-repo.p12
+          
+          # Configure config.yml securely
+          echo 'repo_url: "https://organomagnesiumhalide.github.io/edstem/repo/"' >> config.yml
+          echo 'keystore: "fdroid-repo.p12"' >> config.yml
+          echo 'repo_keyalias: "${{ secrets.FDROID_KEY_ALIAS }}"' >> config.yml
+          echo 'keystorepass: "${{ secrets.FDROID_KEYSTORE_PASSWORD }}"' >> config.yml
+          echo 'keypass: "${{ secrets.FDROID_KEYSTORE_PASSWORD }}"' >> config.yml
           
           # Move downloaded APK to the repo folder
           mkdir -p repo
-          mv ../fdroid-temp/app-debug.apk repo/
+          mv ../fdroid-temp/app-release.apk repo/
           
           # Update the repo metadata
           fdroid update --create-metadata
 
+      - name: Prepare Pages Artifact Directory
+        run: |
+          # Only deploy the 'repo' directory to avoid exposing config.yml and keystore.p12
+          mkdir -p public/repo
+          mv fdroid/repo/* public/repo/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: fdroid/
+          path: public/
 
   deploy:
     needs: fdroid
