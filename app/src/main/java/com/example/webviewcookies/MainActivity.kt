@@ -26,6 +26,11 @@ class MainActivity : AppCompatActivity() {
             webView.reload()
         }
 
+        // Prevent SwipeRefreshLayout from hijacking the scroll if the user is scrolling up the page
+        swipeRefreshLayout.setOnChildScrollUpCallback { _, _ ->
+            webView.scrollY > 0
+        }
+
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)
         cookieManager.setAcceptThirdPartyCookies(webView, true)
@@ -50,6 +55,19 @@ class MainActivity : AppCompatActivity() {
                 webView.loadUrl("https://edstem.org")
             }
         }
+
+        // Handle back button / swipe back gesture
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
     }
 
     override fun onPause() {
