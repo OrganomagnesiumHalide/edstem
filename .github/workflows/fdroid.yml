@@ -31,7 +31,7 @@ jobs:
 
       - name: Decode App Keystore
         run: |
-          echo "${{ secrets.APP_KEYSTORE_BASE64 }}" | base64 --decode > app/app-release.jks
+          echo "${{ secrets.APP_KEYSTORE_BASE64 }}" | base64 -d -i > app/app-release.jks
 
       - name: Build Release APK
         env:
@@ -75,8 +75,8 @@ jobs:
           # Initialize F-Droid repo
           fdroid init
           
-          # Decode F-Droid Keystore
-          echo "${{ secrets.FDROID_KEYSTORE_BASE64 }}" | base64 --decode > fdroid-repo.p12
+          # Decode F-Droid Keystore (ignoring any line breaks/spaces)
+          echo "${{ secrets.FDROID_KEYSTORE_BASE64 }}" | base64 -d -i > fdroid-repo.p12
           
           # Configure config.yml securely
           echo 'repo_url: "https://organomagnesiumhalide.github.io/edstem/repo/"' >> config.yml
