@@ -79,7 +79,7 @@ jobs:
           echo "${{ secrets.FDROID_KEYSTORE_BASE64 }}" | base64 -d -i > fdroid-repo.p12
           
           # Configure config.yml securely
-          echo 'repo_url: "https://organomagnesiumhalide.github.io/edstem/repo/"' >> config.yml
+          echo 'repo_url: "https://organomagnesiumhalide.github.io/edstem/repo"' >> config.yml
           echo 'keystore: "fdroid-repo.p12"' >> config.yml
           echo 'repo_keyalias: "${{ secrets.FDROID_KEY_ALIAS }}"' >> config.yml
           echo 'keystorepass: "${{ secrets.FDROID_KEYSTORE_PASSWORD }}"' >> config.yml

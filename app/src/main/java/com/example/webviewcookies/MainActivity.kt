@@ -44,6 +44,29 @@ class MainActivity : AppCompatActivity() {
                 super.onPageFinished(view, url)
                 swipeRefreshLayout.isRefreshing = false
             }
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: android.webkit.WebResourceRequest?
+            ): Boolean {
+                val url = request?.url ?: return false
+                val host = url.host ?: return false
+
+                // Allow edstem.org and its subdomains to load inside the app
+                if (host == "edstem.org" || host.endsWith(".edstem.org")) {
+                    return false
+                }
+
+                // Open everything else in the user's default external browser
+                try {
+                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, url)
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    // Ignore if no browser is found
+                }
+                
+                return true // Prevent WebView from loading the external URL
+            }
         }
         webView.webChromeClient = WebChromeClient()
 
